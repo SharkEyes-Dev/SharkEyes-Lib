@@ -32,7 +32,7 @@ def _extract_ip(request):
     return "127.0.0.1"
     
 
-def verify(token: str) -> tuple:
+def verify(token: str, request_obj) -> tuple:
 
     if not _API_KEY:
         raise RuntimeError("First, call sharkeyes.configure(api_key='...')")
@@ -54,8 +54,8 @@ def verify(token: str) -> tuple:
         )
 
         if resp.status_code != 200:
-            return False, "Verification error."
-
+            return False, f"Verification error (Status: {resp.status_code})"
+            
         data = resp.json()
 
         if data.get("is_bot") is False:
