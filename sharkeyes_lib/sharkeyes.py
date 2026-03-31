@@ -16,11 +16,27 @@ def configure(api_key: str, url: str = None, timeout: float = None):
         _TIMEOUT = timeout
 
 
+
+def _extract_ip(request):
+    if hasattr(request, 'META'):
+        x_ff = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_ff:
+            return x_ff.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR')
+    if hasattr(request, 'headers'):
+        x_ff = request.headers.get('x-forwarded-for')
+        if x_ff:
+            return x_ff.split(',')[0].strip()
+        if hasattr(request, 'client') and request.client:
+            return request.client.host
+    return "127.0.0.1"
+    
+
 def verify(token: str) -> tuple:
 
     if not _API_KEY:
         raise RuntimeError("First, call sharkeyes.configure(api_key='...')")
-
+    user_ip = _extract_ip(request_obj)
     if not token or not token.strip():
         return False, "Enable JavaScript."
 
@@ -29,7 +45,10 @@ def verify(token: str) -> tuple:
 
         resp = httpx.post(
             _URL,
-            json={"verification_token": token.strip()},
+            json={
+                "verification_token": token.strip(),
+                "user_ip": user_ip
+            },
             headers={"X-Api-Key": _API_KEY},
             timeout=_TIMEOUT,
         )
@@ -39,10 +58,11 @@ def verify(token: str) -> tuple:
 
         data = resp.json()
 
-        if data.get("is_bot"):
-            return False, data.get("reason", "Verification failed.")
+        if data.get("is_bot") is False:
+            return True, None
+            
+        return False, data.get("reason", "Verification failed.")
 
-        return True, None
 
     except Exception as e:
         logger.error("[SharkEyes] %s", e)
