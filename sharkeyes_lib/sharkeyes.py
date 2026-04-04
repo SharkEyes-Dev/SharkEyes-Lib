@@ -38,7 +38,6 @@ def verify(token: str, request_obj) -> tuple:
         raise RuntimeError("First, call sharkeyes.configure(api_key='...')")
     user_ip = _extract_ip(request_obj)
     if not token or not token.strip():
-        logger.info(f"DEBUG: Received token: '{token}', IP: {user_ip}")
         return False, "Enable JavaScript."
 
     try:
